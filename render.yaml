@@ -1,0 +1,76 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: order-execution-db
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.postgres
+    envVars:
+      - key: POSTGRES_DB
+        value: order_execution
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+
+  # Redis
+  - type: redis
+    name: order-execution-redis
+    plan: free
+    ipAllowList: []
+
+  # API Service
+  - type: web
+    name: order-execution-api
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: POSTGRES_HOST
+        fromService:
+          type: pserv
+          name: order-execution-db
+          property: host
+      - key: POSTGRES_PORT
+        fromService:
+          type: pserv
+          name: order-execution-db
+          property: port
+      - key: POSTGRES_DB
+        value: order_execution
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        fromService:
+          type: pserv
+          name: order-execution-db
+          envVarKey: POSTGRES_PASSWORD
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: order-execution-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: order-execution-redis
+          property: port
+      - key: MAX_CONCURRENT_ORDERS
+        value: 10
+      - key: ORDER_RATE_LIMIT
+        value: 100
+      - key: RETRY_MAX_ATTEMPTS
+        value: 3
+      - key: RETRY_BACKOFF_MS
+        value: 1000
+      - key: MOCK_MODE
+        value: true
+      - key: MOCK_DELAY_MIN_MS
+        value: 2000
+      - key: MOCK_DELAY_MAX_MS
+        value: 3000
